@@ -1,0 +1,32 @@
+########################################
+# mod-secondary-class
+#
+# Secondary class (dual-class) system for AzerothCore WotLK 3.3.5a.
+# Players gain a secondary class's spells (GM-set), synced by level, persisted,
+# restorable on login. Stage 1: spells only (no talents/gear/stats).
+########################################
+
+# Master switch. When 0, all hooks return early; already-learned secondary
+# spells are kept (player can .secondary unset manually).
+SecondaryClass.Enable = 1
+
+# Minimum primary level to allow setting a secondary class (1 = no gate).
+SecondaryClass.MinLevel = 1
+
+# Resource-type mismatch handling (e.g. warrior rage + mage mana):
+#   0 = reject the combo (client has no mana bar to cast mage spells)
+#   1 = warn but allow (player accepts spells may be uncastable)
+SecondaryClass.AllowResourceMismatch = 0
+
+# Combo whitelist, empty = all combos allowed.
+# Format: "PRIMARY:SECONDARY,PRIMARY:SECONDARY" e.g. "HUNTER:MAGE,HUNTER:PRIEST"
+SecondaryClass.AllowedCombos = ""
+
+# Secondary spell unlock level offset relative to primary level.
+#   0  = sync (secondary spells unlock at same level as primary)
+#  -N  = delay N levels (balance; avoid low-level with full secondary kit)
+SecondaryClass.SpellLevelOffset = 0
+
+# Spell id blacklist (comma-separated). Emergency: spells that crash the client
+# or are uncastable can be excluded here without code change.
+SecondaryClass.SpellBlacklist = ""
