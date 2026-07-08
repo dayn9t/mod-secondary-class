@@ -55,4 +55,39 @@ void DeleteAllSpells(uint32 guid)
 {
     CharacterDatabase.Execute("DELETE FROM character_secondary_class_spells WHERE guid = {}", guid);
 }
+
+// character_secondary_talents (Phase-3)
+std::map<uint32, uint8> LoadSecondaryTalents(uint32 guid)
+{
+    std::map<uint32, uint8> out;
+    QueryResult result = CharacterDatabase.Query(
+        "SELECT talent_id, rank FROM character_secondary_talents WHERE guid = {}", guid);
+    if (result)
+    {
+        do
+        {
+            Field* fields = result->Fetch();
+            out[fields[0].Get<uint32>()] = fields[1].Get<uint8>();
+        } while (result->NextRow());
+    }
+    return out;
+}
+
+void UpsertSecondaryTalent(uint32 guid, uint32 talentId, uint8 rank)
+{
+    CharacterDatabase.Execute(
+        "REPLACE INTO character_secondary_talents (guid, talent_id, rank) VALUES ({}, {}, {})",
+        guid, talentId, rank);
+}
+
+void DeleteSecondaryTalent(uint32 guid, uint32 talentId)
+{
+    CharacterDatabase.Execute(
+        "DELETE FROM character_secondary_talents WHERE guid = {} AND talent_id = {}", guid, talentId);
+}
+
+void DeleteAllSecondaryTalents(uint32 guid)
+{
+    CharacterDatabase.Execute("DELETE FROM character_secondary_talents WHERE guid = {}", guid);
+}
 }

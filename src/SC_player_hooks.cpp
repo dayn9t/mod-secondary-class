@@ -115,12 +115,13 @@ void SecondaryClassPlayerScript::OnPlayerLevelChanged(Player* player, uint8 /*ol
     }
 }
 
-// Clean the two tables when a character is deleted — otherwise rows orphan.
+// Clean the tables when a character is deleted — otherwise rows orphan.
 void SecondaryClassPlayerScript::OnPlayerDelete(ObjectGuid guid, uint32 /*accountId*/)
 {
     uint32 const g = guid.GetCounter();
     SC::Store::DeleteSecondary(g);
     SC::Store::DeleteAllSpells(g);
+    SC::Store::DeleteAllSecondaryTalents(g);
 }
 
 namespace SC::Shell
