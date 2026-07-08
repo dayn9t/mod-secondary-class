@@ -9,14 +9,14 @@
 SecondaryClassTalentCommScript::SecondaryClassTalentCommScript()
     : PlayerScript("SecondaryClassTalentCommScript") { }
 
-void SecondaryClassTalentCommScript::OnPlayerBeforeSendChatMessage(
-    Player* player, uint32& /*type*/, uint32& lang, std::string& msg)
+bool SecondaryClassTalentCommScript::OnPlayerCanUseChat(
+    Player* player, uint32 type, uint32 language, std::string& msg, Player* /*receiver*/)
 {
-    // Only our addon channel (LANG_ADDON) and our prefix.
-    if (lang != LANG_ADDON || msg.rfind("SC\t", 0) != 0)
-        return;
+    // Only our addon channel + prefix. Allow all other chat through.
+    if (language != LANG_ADDON || msg.rfind("SC\t", 0) != 0)
+        return true;
 
-    LOG_INFO("sc.talent", "[SC-SMOKE] recv from {}: {}", player->GetName(), msg);
+    LOG_INFO("sc.talent", "[SC-COMM] recv from {}: type={} msg={}", player->GetName(), type, msg);
 
     // Reply via CHAT_MSG_ADDON so the addon's CHAT_MSG_ADDON handler fires.
     WorldPacket data;
@@ -25,5 +25,7 @@ void SecondaryClassTalentCommScript::OnPlayerBeforeSendChatMessage(
         player->GetGUID(), player->GetName());
     player->SendDirectMessage(&data);
 
-    msg.clear();  // hook takes msg by reference: clear to suppress broadcast
+    // Abort the whisper: returning false makes Player::Whisper return before it
+    // builds/sends the CHAT_MSG_WHISPER echo that crashes the client.
+    return false;
 }

@@ -7,14 +7,21 @@
 
 class Player;
 
-// Phase-3 talent comm: intercepts SC-prefixed LANG_ADDON chat (addon<->server).
-// Task 1 (smoke): echoes any "SC\t..." back as "SC\tOK\tPING" to prove the
-// round-trip on this core. Replaced with real Q/L/U dispatch in Task 6.
+// Phase-3 talent comm: intercepts SC-prefixed LANG_ADDON messages.
+//
+// The addon sends via WHISPER-to-self (only SendAddonMessage channel that works
+// for a solo player). Empirically that routes through Player::Whisper, which (a)
+// does NOT call OnPlayerBeforeSendChatMessage and (b) sends a CHAT_MSG_WHISPER
+// echo to the client that crashes it. Player::Whisper DOES call OnPlayerCanUseChat
+// (private-chat overload) BEFORE the echo — so we hook that: detect our prefix,
+// reply via CHAT_MSG_ADDON, and return false to abort the echo (no crash).
 class SecondaryClassTalentCommScript : public PlayerScript
 {
 public:
     SecondaryClassTalentCommScript();
-    void OnPlayerBeforeSendChatMessage(Player* player, uint32& type, uint32& lang, std::string& msg) override;
+
+    // Private-chat (whisper) path — the overload Player::Whisper calls.
+    [[nodiscard]] bool OnPlayerCanUseChat(Player* player, uint32 type, uint32 language, std::string& msg, Player* receiver) override;
 };
 
 #endif
