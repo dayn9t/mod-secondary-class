@@ -1,6 +1,8 @@
 #include "SC_commands.h"
 
 #include "SC_class_compat.h"
+#include "SC_player_hooks.h"  // SC::Shell::Apply/RemoveSecondaryPower
+#include "SC_power.h"
 #include "SC_spell_resolver.h"
 #include "SC_store.h"
 
@@ -94,6 +96,7 @@ std::vector<ChatCommandBuilder> secondary_commandscript::GetCommands() const
         { "set",   HandleSecondarySetCommand,   rbac::RBAC_PERM_COMMAND_ACCOUNT_SET_SECLEVEL, Console::Yes },
         { "unset", HandleSecondaryUnsetCommand, rbac::RBAC_PERM_COMMAND_ACCOUNT_SET_SECLEVEL, Console::Yes },
         { "show",  HandleSecondaryShowCommand,  rbac::RBAC_PERM_COMMAND_ACCOUNT_SET_SECLEVEL, Console::Yes },
+        { "powerinfo", HandleSecondaryPowerInfoCommand, rbac::RBAC_PERM_COMMAND_ACCOUNT_SET_SECLEVEL, Console::Yes },
     };
     static ChatCommandTable const commandTable =
     {
@@ -140,11 +143,19 @@ bool secondary_commandscript::HandleSecondarySetCommand(ChatHandler* handler, st
         return false;
     }
 
+    // Cross-resource (e.g. rogue + mage) is the Phase-2 use case: SecondaryPowerEnabled
+    // grants a synthetic mana pool so the combo is fully playable. Reject only when
+    // neither Phase 2 nor the debug AllowResourceMismatch bypass is on (No Silent
+    // Degradation: don't silently let a combo through whose spells can't be cast).
+    bool const crossResource = !SC::ClassCompat::IsComboCompatible(primary, secondary);
+    bool const powerEnabled = sConfigMgr->GetOption<bool>("SecondaryClass.SecondaryPowerEnabled", true);
     bool const allowMismatch = sConfigMgr->GetOption<bool>("SecondaryClass.AllowResourceMismatch", false);
-    if (!SC::ClassCompat::IsComboCompatible(primary, secondary) && !allowMismatch)
+    if (crossResource && !powerEnabled && !allowMismatch)
     {
         handler->SendErrorMessage(
-            "Resource mismatch (primary/secondary power types differ). Set SecondaryClass.AllowResourceMismatch=1 to force.");
+            "Resource mismatch (primary/secondary power types differ). Enable "
+            "SecondaryClass.SecondaryPowerEnabled=1 to grant a synthetic mana pool, "
+            "or AllowResourceMismatch=1 to force without one.");
         return false;
     }
 
@@ -158,9 +169,11 @@ bool secondary_commandscript::HandleSecondarySetCommand(ChatHandler* handler, st
 
     uint32 const guid = player->GetGUID().GetCounter();
 
-    // Switching secondary: clear the old one first (spells + state).
-    if (SC::Store::LoadSecondary(guid))
+    // Switching secondary: clear the old one first (spells + Phase-2 power pool).
+    auto const oldSecondary = SC::Store::LoadSecondary(guid);
+    if (oldSecondary)
     {
+        SC::Shell::RemoveSecondaryPower(player, *oldSecondary);
         std::set<uint32> const oldSpells = SC::Store::LoadSpells(guid);
         for (uint32 s : oldSpells)
             if (player->HasActiveSpell(s))
@@ -184,6 +197,10 @@ bool secondary_commandscript::HandleSecondarySetCommand(ChatHandler* handler, st
         ++learned;
     }
 
+    // Phase-2: grant the synthetic mana pool (idempotent). No-op for same-resource
+    // combos (e.g. mage + priest).
+    SC::Shell::ApplySecondaryPower(player, secondary);
+
     handler->SendSysMessage("Secondary class set; learned " + std::to_string(learned) + " spells.");
     return true;
 }
@@ -198,11 +215,15 @@ bool secondary_commandscript::HandleSecondaryUnsetCommand(ChatHandler* handler)
     }
 
     uint32 const guid = player->GetGUID().GetCounter();
-    if (!SC::Store::LoadSecondary(guid))
+    auto const secondary = SC::Store::LoadSecondary(guid);
+    if (!secondary)
     {
         handler->SendSysMessage("No secondary class set.");
         return true;
     }
+
+    // Phase-2: drop the synthetic mana pool (no-op for same-resource combos).
+    SC::Shell::RemoveSecondaryPower(player, *secondary);
 
     std::set<uint32> const spells = SC::Store::LoadSpells(guid);
     uint32 removed = 0;
@@ -238,5 +259,33 @@ bool secondary_commandscript::HandleSecondaryShowCommand(ChatHandler* handler)
     std::set<uint32> const spells = SC::Store::LoadSpells(guid);
     handler->SendSysMessage("Secondary class id: " + std::to_string(static_cast<uint32>(*secondary))
                             + ", spells recorded: " + std::to_string(spells.size()));
+    return true;
+}
+
+// Diagnostic: dump all 7 power pools (current/max) + primary power type.
+// Answers once-for-all: does the rogue have a real mana pool, and what value
+// does stat pin it to? No more guessing from client-side behavior.
+bool secondary_commandscript::HandleSecondaryPowerInfoCommand(ChatHandler* handler)
+{
+    Player* player = TargetedPlayer(handler);
+    if (!player)
+    {
+        handler->SendErrorMessage("No player context");
+        return false;
+    }
+
+    static char const* const powerNames[MAX_POWERS] =
+        { "MANA(0)", "RAGE(1)", "FOCUS(2)", "ENERGY(3)", "HAPPINESS(4)", "RUNE(5)", "RUNIC(6)" };
+
+    Classes const cls = static_cast<Classes>(player->getClass());
+    handler->SendSysMessage("=== PowerInfo: class=" + std::to_string(cls)
+        + " primaryPowerType=" + std::to_string(player->getPowerType()) + " ===");
+    for (int p = 0; p < MAX_POWERS; ++p)
+    {
+        Powers const pt = Powers(p);
+        handler->SendSysMessage(std::string("  ") + powerNames[p]
+            + ": " + std::to_string(player->GetPower(pt))
+            + "/" + std::to_string(player->GetMaxPower(pt)));
+    }
     return true;
 }

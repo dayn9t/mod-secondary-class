@@ -3,6 +3,7 @@
 
 #include "ObjectGuid.h"
 #include "PlayerScript.h"
+#include "SharedDefines.h"  // Classes
 
 class Player;
 
@@ -18,5 +19,20 @@ public:
     void OnPlayerLevelChanged(Player* player, uint8 oldlevel) override;
     void OnPlayerDelete(ObjectGuid guid, uint32 accountId) override;
 };
+
+// Imperative Shell (Phase-2) — mutates Player power state. Thin wrapper over AC's
+// own power API so the cost/pool/regen logic stays entirely native.
+namespace SC::Shell
+{
+    // Grant/rescale the synthetic mana pool for a physical-primary player taking a
+    // caster secondary (base+pool always rescaled; mp5 swapped to the level-correct
+    // value). Idempotent and safe to call on login, set, and every level-up. No-op
+    // when the combo needs no synthetic mana or SecondaryPowerEnabled=0.
+    void ApplySecondaryPower(Player* player, Classes secondary);
+
+    // Reverse of ApplySecondaryPower: remove injected mp5 and zero the pool. No-op
+    // when the combo needed no synthetic mana.
+    void RemoveSecondaryPower(Player* player, Classes secondary);
+}
 
 #endif

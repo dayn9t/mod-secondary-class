@@ -2,6 +2,7 @@
 AC_ADD_SCRIPT("${CMAKE_CURRENT_LIST_DIR}/src/SC_loader.cpp")
 AC_ADD_SCRIPT("${CMAKE_CURRENT_LIST_DIR}/src/SC_entry.cpp")
 AC_ADD_SCRIPT("${CMAKE_CURRENT_LIST_DIR}/src/SC_class_compat.cpp")
+AC_ADD_SCRIPT("${CMAKE_CURRENT_LIST_DIR}/src/SC_power.cpp")
 AC_ADD_SCRIPT("${CMAKE_CURRENT_LIST_DIR}/src/SC_spell_resolver.cpp")
 AC_ADD_SCRIPT("${CMAKE_CURRENT_LIST_DIR}/src/SC_store.cpp")
 AC_ADD_SCRIPT("${CMAKE_CURRENT_LIST_DIR}/src/SC_player_hooks.cpp")

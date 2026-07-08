@@ -19,6 +19,7 @@ private:
     static bool HandleSecondarySetCommand(ChatHandler* handler, std::string className);
     static bool HandleSecondaryUnsetCommand(ChatHandler* handler);
     static bool HandleSecondaryShowCommand(ChatHandler* handler);
+    static bool HandleSecondaryPowerInfoCommand(ChatHandler* handler);
 };
 
 #endif

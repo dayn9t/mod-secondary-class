@@ -30,3 +30,33 @@ SecondaryClass.SpellLevelOffset = 0
 # Spell id blacklist (comma-separated). Emergency: spells that crash the client
 # or are uncastable can be excluded here without code change.
 SecondaryClass.SpellBlacklist = ""
+
+########################################
+# Phase 2 — cross-resource secondary power (dual-power)
+#
+# A physical primary (warrior rage / rogue energy / DK runic) taking a caster
+# secondary has no mana bar, so its spells would cast for free (AC computes mana
+# cost as % * GetCreateMana, and the base mana is 0). Phase 2 grants a real base
+# mana (SetCreateMana) so cost, pool-max and regen all run through AC's native
+# logic. The mana bar itself is not drawn by the 3.3.5a client for a physical
+# primary — use `.secondary powerinfo` for server-side visibility.
+########################################
+
+# Phase-2 master switch. 1 = grant the synthetic mana pool for cross-resource
+# combos (rogue+mage etc.); 0 = reject cross-resource combos (back to Phase-1
+# behaviour, unless AllowResourceMismatch=1 forces them through without a pool).
+SecondaryClass.SecondaryPowerEnabled = 1
+
+# Synthetic base mana to grant. 0 = look up the real value for the secondary
+# class + level from player_classlevel_stats (recommended, single source of
+# truth). Set > 0 to override for tuning/testing.
+SecondaryClass.SecondaryPowerBase = 0
+
+# Passive mp5 as a PERCENT of the secondary's base mana, per 5 seconds, injected
+# via the native ApplyManaRegenBonus mechanic. Scales with level (a flat constant
+# is huge on a tiny low-level pool and trivial at 80). Low default → the secondary
+# regens slower than a real caster (which has spirit+intellect+talents); drink/eat
+# to refill faster (SPELL_AURA_MOD_POWER_REGEN[MANA], stacks with this). 0 = no
+# passive regen (drink only). The shell tracks the injected amount per session so
+# level-up/unset swap exactly (no underflow); relog after changing this.
+SecondaryClass.ManaRegenPct = 3
