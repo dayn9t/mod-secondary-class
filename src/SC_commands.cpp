@@ -320,9 +320,12 @@ bool secondary_commandscript::HandleScLearnCommand(ChatHandler* handler, uint32 
         return false;
     }
     std::string reply;
-    bool const ok = SC::Shell::LearnSecondaryTalent(player, talentId, reply);
+    SC::Shell::LearnSecondaryTalent(player, talentId, reply);
     handler->SendSysMessage(reply);
-    return ok;
+    // Always return true: the command was processed and a structured SC\t reply
+    // sent. Returning false (on ERR) makes AC print "### USAGE: .sc learn ..."
+    // spam — OK/ERR is encoded in the reply, not the command's boolean return.
+    return true;
 }
 
 bool secondary_commandscript::HandleScValidateCommand(ChatHandler* handler, uint32 talentId)
@@ -377,7 +380,8 @@ bool secondary_commandscript::HandleScResetCommand(ChatHandler* handler)
         return false;
     }
     std::string reply;
-    bool const ok = SC::Shell::ResetSecondaryTalents(player, reply);
+    SC::Shell::ResetSecondaryTalents(player, reply);
     handler->SendSysMessage(reply);
-    return ok;
+    // See HandleScLearnCommand: OK/ERR travels in the SC\t reply, not the return.
+    return true;
 }

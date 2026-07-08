@@ -71,6 +71,8 @@ SecondaryClass.ManaRegenPct = 3
 SecondaryClass.TalentEnabled = 1
 
 # Secondary talent-point budget = (level - 9) * this ratio (WotLK: 1 pt/level from
-# 10). 0.5 → half the primary's budget (secondary weaker than primary, by design).
-# 1.0 = same as a real secondary-class player. Relog after changing.
-SecondaryClass.TalentPointRatio = 0.5
+# 10). 1.0 = same as a real secondary-class player. The secondary's weakness is
+# expressed ENTIRELY through attributes (Phase 4 injects weak spell power / crit),
+# NOT through the talent budget — cutting points on top would double-weaken the
+# build and starve it of build diversity. Keep at 1.0. Relog after changing.
+SecondaryClass.TalentPointRatio = 1.0

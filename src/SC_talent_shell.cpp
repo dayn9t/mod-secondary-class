@@ -42,7 +42,8 @@ bool LearnSecondaryTalent(Player* player, uint32 talentId, std::string& reply)
 
     std::map<uint32, uint8> learned = SC::Store::LoadSecondaryTalents(guid);
     uint32 const spent = SpentTotal(learned);
-    auto const r = SC::Talents::ValidateLearn(*secondary, talentId, learned, spent, MaxSecondaryTalentPoints(player));
+    uint32 const maxPoints = MaxSecondaryTalentPoints(player);
+    auto const r = SC::Talents::ValidateLearn(*secondary, talentId, learned, spent, maxPoints);
     if (!r.ok) { reply = "SC\tERR\t" + r.errCode + "\t" + r.errText; return false; }
 
     TalentEntry const* t = sTalentStore.LookupEntry(talentId);
@@ -51,7 +52,7 @@ bool LearnSecondaryTalent(Player* player, uint32 talentId, std::string& reply)
     SC::Store::UpsertSecondaryTalent(guid, talentId, r.newRank);
 
     reply = "SC\tOK\t" + std::to_string(talentId) + "\t" + std::to_string(r.newRank)
-            + "\t" + std::to_string(spent + 1);
+            + "\t" + std::to_string(spent + 1) + "\t" + std::to_string(maxPoints);
     return true;
 }
 
@@ -79,7 +80,8 @@ bool UnlearnSecondaryTalent(Player* player, uint32 talentId, std::string& reply)
     }
 
     reply = "SC\tOK\t" + std::to_string(talentId) + "\t" + std::to_string(r.newRank)
-            + "\t" + std::to_string(SpentTotal(learned) - 1);
+            + "\t" + std::to_string(SpentTotal(learned) - 1)
+            + "\t" + std::to_string(MaxSecondaryTalentPoints(player));
     return true;
 }
 
@@ -101,7 +103,7 @@ std::string SerializeTalentState(Player* player)
     uint32 const guid = player->GetGUID().GetCounter();
     auto const secondary = SC::Store::LoadSecondary(guid);
     if (!secondary)
-        return "SC\tS\t0\t0\t";
+        return "SC\tS\t0\t0\t0\t";
 
     std::map<uint32, uint8> const learned = SC::Store::LoadSecondaryTalents(guid);
     std::string list;
@@ -112,7 +114,8 @@ std::string SerializeTalentState(Player* player)
         list += std::to_string(kv.first) + ":" + std::to_string(kv.second);
     }
     return "SC\tS\t" + std::to_string(static_cast<uint32>(*secondary))
-         + "\t" + std::to_string(SpentTotal(learned)) + "\t" + list;
+         + "\t" + std::to_string(SpentTotal(learned))
+         + "\t" + std::to_string(MaxSecondaryTalentPoints(player)) + "\t" + list;
 }
 
 void ReapplySecondaryTalents(Player* player)
