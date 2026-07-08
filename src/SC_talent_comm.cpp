@@ -9,12 +9,12 @@
 SecondaryClassTalentCommScript::SecondaryClassTalentCommScript()
     : PlayerScript("SecondaryClassTalentCommScript") { }
 
-bool SecondaryClassTalentCommScript::OnPlayerCanUseChat(
-    Player* player, uint32 type, uint32 language, std::string& msg, Player* /*receiver*/)
+void SecondaryClassTalentCommScript::OnPlayerBeforeSendChatMessage(
+    Player* player, uint32& type, uint32& lang, std::string& msg)
 {
-    // Only our addon channel + prefix. Allow all other chat through.
-    if (language != LANG_ADDON || msg.rfind("SC\t", 0) != 0)
-        return true;
+    // Only our addon channel (LANG_ADDON) and our prefix. Pass through all else.
+    if (lang != LANG_ADDON || msg.rfind("SC\t", 0) != 0)
+        return;
 
     LOG_INFO("sc.talent", "[SC-COMM] recv from {}: type={} msg={}", player->GetName(), type, msg);
 
@@ -25,7 +25,5 @@ bool SecondaryClassTalentCommScript::OnPlayerCanUseChat(
         player->GetGUID(), player->GetName());
     player->SendDirectMessage(&data);
 
-    // Abort the whisper: returning false makes Player::Whisper return before it
-    // builds/sends the CHAT_MSG_WHISPER echo that crashes the client.
-    return false;
+    msg.clear();  // hook takes msg by reference: clear to suppress the guild broadcast (echo)
 }

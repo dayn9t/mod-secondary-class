@@ -7,21 +7,19 @@
 
 class Player;
 
-// Phase-3 talent comm: intercepts SC-prefixed LANG_ADDON messages.
+// Phase-3 talent comm: intercepts SC-prefixed LANG_ADDON chat (addon<->server).
 //
-// The addon sends via WHISPER-to-self (only SendAddonMessage channel that works
-// for a solo player). Empirically that routes through Player::Whisper, which (a)
-// does NOT call OnPlayerBeforeSendChatMessage and (b) sends a CHAT_MSG_WHISPER
-// echo to the client that crashes it. Player::Whisper DOES call OnPlayerCanUseChat
-// (private-chat overload) BEFORE the echo — so we hook that: detect our prefix,
-// reply via CHAT_MSG_ADDON, and return false to abort the echo (no crash).
+// Channel choice: the addon sends via GUILD (WHISPER-to-self is a 3.3.5a client
+// crash bug; GUILD is the only SendAddonMessage channel a solo player can use
+// without a party). GUILD addon messages route through ChatHandler, which calls
+// OnPlayerBeforeSendChatMessage (msg by ref) before the guild broadcast -- so we
+// detect our prefix, reply via CHAT_MSG_ADDON, and clear msg to suppress the
+// (echo) broadcast. Requires the player to be in a guild (.guild create).
 class SecondaryClassTalentCommScript : public PlayerScript
 {
 public:
     SecondaryClassTalentCommScript();
-
-    // Private-chat (whisper) path — the overload Player::Whisper calls.
-    [[nodiscard]] bool OnPlayerCanUseChat(Player* player, uint32 type, uint32 language, std::string& msg, Player* receiver) override;
+    void OnPlayerBeforeSendChatMessage(Player* player, uint32& type, uint32& lang, std::string& msg) override;
 };
 
 #endif
