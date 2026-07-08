@@ -60,3 +60,17 @@ SecondaryClass.SecondaryPowerBase = 0
 # passive regen (drink only). The shell tracks the injected amount per session so
 # level-up/unset swap exactly (no underflow); relog after changing this.
 SecondaryClass.ManaRegenPct = 3
+
+########################################
+# Phase 3 — secondary-class talents (dual-class talent tree via addon)
+########################################
+
+# Talent system master switch. 1 = enable secondary talents (re-applied on login,
+# configured via the mod-secondary-class-addon over the SC addon-message channel).
+# 0 = talents disabled (already-learned talents are kept until reset).
+SecondaryClass.TalentEnabled = 1
+
+# Secondary talent-point budget = (level - 9) * this ratio (WotLK: 1 pt/level from
+# 10). 0.5 → half the primary's budget (secondary weaker than primary, by design).
+# 1.0 = same as a real secondary-class player. Relog after changing.
+SecondaryClass.TalentPointRatio = 0.5

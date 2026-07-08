@@ -3,6 +3,7 @@
 #include "SC_power.h"
 #include "SC_spell_resolver.h"
 #include "SC_store.h"
+#include "SC_talent_shell.h"
 
 #include "Config.h"     // sConfigMgr
 #include "Player.h"
@@ -83,6 +84,10 @@ void SecondaryClassPlayerScript::OnPlayerLogin(Player* player)
         if (!player->HasActiveSpell(spell))
             player->learnSpell(spell);
     }
+
+    // Phase-3: re-apply learned secondary talents (spells can drop on restart).
+    if (sConfigMgr->GetOption<bool>("SecondaryClass.TalentEnabled", true))
+        SC::Shell::ReapplySecondaryTalents(player);
 }
 
 // Sync: at new level, grant any secondary spells now unlocked (spell_level ≤ newLevel+offset)
