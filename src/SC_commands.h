@@ -20,6 +20,13 @@ private:
     static bool HandleSecondaryUnsetCommand(ChatHandler* handler);
     static bool HandleSecondaryShowCommand(ChatHandler* handler);
     static bool HandleSecondaryPowerInfoCommand(ChatHandler* handler);
+
+    // Phase-3 talent GM commands (.sc learn|validate|show|reset) — bypass the
+    // addon for admin/testing; same Shell the addon-message path uses.
+    static bool HandleScLearnCommand(ChatHandler* handler, uint32 talentId);
+    static bool HandleScValidateCommand(ChatHandler* handler, uint32 talentId);
+    static bool HandleScShowCommand(ChatHandler* handler);
+    static bool HandleScResetCommand(ChatHandler* handler);
 };
 
 #endif

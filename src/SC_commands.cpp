@@ -5,6 +5,16 @@
 #include "SC_power.h"
 #include "SC_spell_resolver.h"
 #include "SC_store.h"
+#include "SC_talent_shell.h"
+#include "SC_talents.h"
+
+#include "Chat.h"
+#include "Config.h"
+#include "DBCStores.h"     // sTalentStore
+#include "DBCStructure.h"  // TalentEntry
+#include "Player.h"
+#include "RBAC.h"
+#include "ScriptMgr.h"
 
 #include "Chat.h"
 #include "Config.h"
@@ -14,6 +24,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <map>
 #include <sstream>
 #include <string>
 #include <unordered_set>
@@ -98,9 +109,17 @@ std::vector<ChatCommandBuilder> secondary_commandscript::GetCommands() const
         { "show",  HandleSecondaryShowCommand,  rbac::RBAC_PERM_COMMAND_ACCOUNT_SET_SECLEVEL, Console::Yes },
         { "powerinfo", HandleSecondaryPowerInfoCommand, rbac::RBAC_PERM_COMMAND_ACCOUNT_SET_SECLEVEL, Console::Yes },
     };
+    static ChatCommandTable const scSubTable =
+    {
+        { "learn",    HandleScLearnCommand,    rbac::RBAC_PERM_COMMAND_ACCOUNT_SET_SECLEVEL, Console::Yes },
+        { "validate", HandleScValidateCommand, rbac::RBAC_PERM_COMMAND_ACCOUNT_SET_SECLEVEL, Console::Yes },
+        { "show",     HandleScShowCommand,     rbac::RBAC_PERM_COMMAND_ACCOUNT_SET_SECLEVEL, Console::Yes },
+        { "reset",    HandleScResetCommand,    rbac::RBAC_PERM_COMMAND_ACCOUNT_SET_SECLEVEL, Console::Yes },
+    };
     static ChatCommandTable const commandTable =
     {
         { "secondary", secondarySubTable },
+        { "sc",        scSubTable },
     };
     return commandTable;
 }
@@ -288,4 +307,77 @@ bool secondary_commandscript::HandleSecondaryPowerInfoCommand(ChatHandler* handl
             + "/" + std::to_string(player->GetMaxPower(pt)));
     }
     return true;
+}
+
+// ---- Phase-3 talent GM commands (.sc) ----
+
+bool secondary_commandscript::HandleScLearnCommand(ChatHandler* handler, uint32 talentId)
+{
+    Player* player = TargetedPlayer(handler);
+    if (!player)
+    {
+        handler->SendErrorMessage("No player context");
+        return false;
+    }
+    std::string reply;
+    bool const ok = SC::Shell::LearnSecondaryTalent(player, talentId, reply);
+    handler->SendSysMessage(reply);
+    return ok;
+}
+
+bool secondary_commandscript::HandleScValidateCommand(ChatHandler* handler, uint32 talentId)
+{
+    Player* player = TargetedPlayer(handler);
+    if (!player)
+    {
+        handler->SendErrorMessage("No player context");
+        return false;
+    }
+    uint32 const guid = player->GetGUID().GetCounter();
+    auto const secondary = SC::Store::LoadSecondary(guid);
+    if (!secondary)
+    {
+        handler->SendErrorMessage("No secondary class set");
+        return false;
+    }
+    std::map<uint32, uint8> const learned = SC::Store::LoadSecondaryTalents(guid);
+    uint32 spent = 0;
+    for (auto const& kv : learned)
+        spent += kv.second;
+
+    auto const r = SC::Talents::ValidateLearn(
+        *secondary, talentId, learned, spent, SC::Shell::MaxSecondaryTalentPoints(player));
+
+    handler->SendSysMessage("validate talent " + std::to_string(talentId)
+        + (r.ok ? " -> OK (newRank=" + std::to_string(r.newRank) + ")"
+                : " -> ERR " + r.errCode + ": " + r.errText)
+        + " | spent=" + std::to_string(spent)
+        + " max=" + std::to_string(SC::Shell::MaxSecondaryTalentPoints(player)));
+    return true;
+}
+
+bool secondary_commandscript::HandleScShowCommand(ChatHandler* handler)
+{
+    Player* player = TargetedPlayer(handler);
+    if (!player)
+    {
+        handler->SendErrorMessage("No player context");
+        return false;
+    }
+    handler->SendSysMessage(SC::Shell::SerializeTalentState(player));
+    return true;
+}
+
+bool secondary_commandscript::HandleScResetCommand(ChatHandler* handler)
+{
+    Player* player = TargetedPlayer(handler);
+    if (!player)
+    {
+        handler->SendErrorMessage("No player context");
+        return false;
+    }
+    std::string reply;
+    bool const ok = SC::Shell::ResetSecondaryTalents(player, reply);
+    handler->SendSysMessage(reply);
+    return ok;
 }
