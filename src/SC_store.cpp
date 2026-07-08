@@ -56,12 +56,13 @@ void DeleteAllSpells(uint32 guid)
     CharacterDatabase.Execute("DELETE FROM character_secondary_class_spells WHERE guid = {}", guid);
 }
 
-// character_secondary_talents (Phase-3)
+// character_secondary_talents (Phase-3). Column is `talent_rank` (not `rank`,
+// which is a MySQL 8 reserved word and would abort the core on parse error).
 std::map<uint32, uint8> LoadSecondaryTalents(uint32 guid)
 {
     std::map<uint32, uint8> out;
     QueryResult result = CharacterDatabase.Query(
-        "SELECT talent_id, rank FROM character_secondary_talents WHERE guid = {}", guid);
+        "SELECT talent_id, talent_rank FROM character_secondary_talents WHERE guid = {}", guid);
     if (result)
     {
         do
@@ -76,7 +77,7 @@ std::map<uint32, uint8> LoadSecondaryTalents(uint32 guid)
 void UpsertSecondaryTalent(uint32 guid, uint32 talentId, uint8 rank)
 {
     CharacterDatabase.Execute(
-        "REPLACE INTO character_secondary_talents (guid, talent_id, rank) VALUES ({}, {}, {})",
+        "REPLACE INTO character_secondary_talents (guid, talent_id, talent_rank) VALUES ({}, {}, {})",
         guid, talentId, rank);
 }
 
